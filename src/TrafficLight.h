@@ -1,65 +1,52 @@
 #ifndef TRAFFICLIGHT_H
 #define TRAFFICLIGHT_H
 
+#pragma once
 #include <mutex>
 #include <deque>
 #include <condition_variable>
+
 #include "TrafficObject.h"
 
 // forward declarations to avoid include cycle
 class Vehicle;
 
-
-// FP.3 Define a class „MessageQueue“ which has the public methods send and receive. 
-// Send should take an rvalue reference of type TrafficLightPhase whereas receive should return this type. 
-// Also, the class should define an std::dequeue called _queue, which stores objects of type TrafficLightPhase. 
-// Also, there should be an std::condition_variable as well as an std::mutex as private members. 
+enum traffic_light_phase
+{
+    red,
+    green,
+};
 
 template <class T>
 class MessageQueue
 {
 public:
-	 
-	 T receive();
-     void send(T &&message);
+    T receive();
+    void send(T &&msg);
 
 private:
-
-    std::deque<T> _queue; 
-    std::condition_variable _condition;
-    std::mutex _mutex;
+    std::mutex mutex_;
+    std::condition_variable cond_;
+    std::deque<T> queue_;
 };
 
-// FP.1 : Define a class „TrafficLight“ which is a child class of TrafficObject. 
-// The class shall have the public methods „void waitForGreen()“ and „void simulate()“ 
-// as well as „TrafficLightPhase getCurrentPhase()“, where TrafficLightPhase is an enum that 
-// can be either „red“ or „green“. Also, add the private method „void cycleThroughPhases()“. 
-// Furthermore, there shall be the private member _currentPhase which can take „red“ or „green“ as its value. 
-
-class TrafficLight 	: public TrafficObject {
+class TrafficLight final : public TrafficObject
 {
 public:
-    // constructor / desctructor
+    TrafficLight();
+    traffic_light_phase get_current_phase() const;
 
-    // getters / setters
-
-    // typical behaviour methods
-     	void waitForGreen();
-        void simulate();
-        TrafficLightPhase getCurrentPhase();
+    void wait_for_green() const;
+    void simulate() override;
 
 private:
-    // typical behaviour methods
+    void cycle_through_phase();
 
-    // FP.4b : create a private member of type MessageQueue for messages of type TrafficLightPhase 
-    // and use it within the infinite loop to push each new TrafficLightPhase into it by calling 
-    // send in conjunction with move semantics.
+    std::condition_variable _condition;
+    std::mutex _mutex;
 
-	 	void cycleThroughPhases();
-        TrafficLightPhase _currentPhase;
-
-    	std::condition_variable _condition;
-    	std::mutex _mutex;
+    std::shared_ptr<MessageQueue<traffic_light_phase>> msg_queue_;
+    traffic_light_phase current_phase_;
 };
 
 #endif
